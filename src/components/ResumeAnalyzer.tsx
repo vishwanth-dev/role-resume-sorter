@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import FileUploader from './FileUploader';
 import ResultsDisplay from './ResultsDisplay';
+import { supabase } from '@/integrations/supabase/client';
 
 export type AnalysisResult = {
   role: string;
@@ -78,10 +79,25 @@ const ResumeAnalyzer = () => {
       const data = await response.json();
       const analysisResult = JSON.parse(data.choices[0].message.content);
       
+      // Store the analysis result in Supabase
+      const { error: supabaseError } = await supabase
+        .from('resume_analyses')
+        .insert({
+          file_name: file.name,
+          role: analysisResult.role,
+          confidence: analysisResult.confidence,
+          keywords: analysisResult.keywords
+        });
+
+      if (supabaseError) {
+        console.error('Supabase error:', supabaseError);
+        throw new Error('Failed to save analysis results');
+      }
+
       setResult(analysisResult);
       toast({
         title: "Analysis Complete",
-        description: "Your resume has been successfully analyzed.",
+        description: "Your resume has been successfully analyzed and saved.",
       });
     } catch (error) {
       console.error('Analysis error:', error);

@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { Upload, FileText, Search } from 'lucide-react';
+import { Search, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import FileUploader from './FileUploader';
 import ResultsDisplay from './ResultsDisplay';
 
@@ -29,21 +30,45 @@ const ResumeAnalyzer = () => {
 
     setAnalyzing(true);
     try {
-      // Simulate analysis with mock data (replace with actual analysis logic)
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Read the file content
+      const fileContent = await file.text();
       
-      const mockResult: AnalysisResult = {
-        role: "Software Engineer",
-        confidence: 0.89,
-        keywords: ["React", "JavaScript", "TypeScript", "Full Stack", "API Development"]
-      };
+      // Prepare the OpenAI API request
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, // You'll need to set this up
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a professional resume analyzer. Analyze the resume content and provide a job role categorization, confidence score, and key skills detected. Return the response in JSON format with fields: role (string), confidence (number between 0-1), and keywords (array of strings).'
+            },
+            {
+              role: 'user',
+              content: fileContent
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Analysis failed');
+      }
+
+      const data = await response.json();
+      const analysisResult = JSON.parse(data.choices[0].message.content);
       
-      setResult(mockResult);
+      setResult(analysisResult);
       toast({
         title: "Analysis Complete",
         description: "Your resume has been successfully analyzed.",
       });
     } catch (error) {
+      console.error('Analysis error:', error);
       toast({
         title: "Analysis Failed",
         description: "There was an error analyzing your resume. Please try again.",
@@ -79,6 +104,10 @@ const ResumeAnalyzer = () => {
               )}
             </Button>
           </div>
+        )}
+        
+        {analyzing && (
+          <Progress value={66} className="mt-4" />
         )}
       </Card>
 

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Upload, FileText, Analysis } from 'lucide-react';
+import { Upload, FileText, Search } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,7 +68,7 @@ const ResumeAnalyzer = () => {
             >
               {analyzing ? (
                 <>
-                  <Analysis className="mr-2 h-4 w-4 animate-spin" />
+                  <Search className="mr-2 h-4 w-4 animate-spin" />
                   Analyzing...
                 </>
               ) : (

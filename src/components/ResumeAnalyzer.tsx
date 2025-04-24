@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Card } from '@/components/ui/card';
@@ -21,18 +21,44 @@ const ResumeAnalyzer = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('openai_api_key') || '');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleFileUpload = (uploadedFile: File) => {
     setFile(uploadedFile);
     setResult(null);
+    setErrorMessage(null);
   };
 
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const key = e.target.value;
     setApiKey(key);
     localStorage.setItem('openai_api_key', key);
+    setErrorMessage(null); // Clear any previous error when API key is changed
   };
+
+  // Check if there are previous analyses in Supabase when component mounts
+  useEffect(() => {
+    const fetchPreviousAnalyses = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('resume_analyses')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          console.log('Found previous analysis:', data[0]);
+        }
+      } catch (err) {
+        console.error('Error fetching previous analyses:', err);
+      }
+    };
+
+    fetchPreviousAnalyses();
+  }, []);
 
   const analyzeResume = async () => {
     if (!file) return;
@@ -46,6 +72,8 @@ const ResumeAnalyzer = () => {
     }
 
     setAnalyzing(true);
+    setErrorMessage(null);
+    
     try {
       // Read the file content
       const fileContent = await file.text();
@@ -72,12 +100,24 @@ const ResumeAnalyzer = () => {
         })
       });
 
+      const responseData = await response.json();
+      
       if (!response.ok) {
-        throw new Error('Analysis failed');
+        // Extract specific error message from OpenAI response
+        const errorMsg = responseData.error?.message || 'Analysis failed';
+        console.error('OpenAI API error:', responseData.error);
+        
+        // Provide user-friendly error message
+        if (responseData.error?.type === 'insufficient_quota') {
+          setErrorMessage("Your OpenAI account has insufficient quota. Please check your billing details or use a different API key.");
+        } else {
+          setErrorMessage(errorMsg);
+        }
+        
+        throw new Error(errorMsg);
       }
 
-      const data = await response.json();
-      const analysisResult = JSON.parse(data.choices[0].message.content);
+      const analysisResult = JSON.parse(responseData.choices[0].message.content);
       
       // Store the analysis result in Supabase
       const { error: supabaseError } = await supabase
@@ -91,6 +131,7 @@ const ResumeAnalyzer = () => {
 
       if (supabaseError) {
         console.error('Supabase error:', supabaseError);
+        setErrorMessage('Failed to save analysis results to database');
         throw new Error('Failed to save analysis results');
       }
 
@@ -101,11 +142,15 @@ const ResumeAnalyzer = () => {
       });
     } catch (error) {
       console.error('Analysis error:', error);
-      toast({
-        title: "Analysis Failed",
-        description: "There was an error analyzing your resume. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Only show toast if we haven't already set a specific error message
+      if (!errorMessage) {
+        toast({
+          title: "Analysis Failed",
+          description: error instanceof Error ? error.message : "There was an error analyzing your resume. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setAnalyzing(false);
     }
@@ -138,6 +183,13 @@ const ResumeAnalyzer = () => {
               You need to provide your OpenAI API key to use the resume analyzer.
               Get your API key from the <a href="https://platform.openai.com/account/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">OpenAI dashboard</a>.
             </AlertDescription>
+          </Alert>
+        )}
+        
+        {errorMessage && (
+          <Alert className="mb-4" variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         )}
         

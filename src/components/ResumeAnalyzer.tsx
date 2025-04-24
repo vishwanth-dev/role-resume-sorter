@@ -114,7 +114,7 @@ const ResumeAnalyzer = () => {
             messages: [
               {
                 role: "system",
-                content: `You are an expert resume analyzer. Analyze the provided resume and return a JSON object with the following structure. Be specific and detailed in your analysis:
+                content: `You are an expert resume analyzer. Analyze the provided resume and return ONLY a raw JSON object (no markdown, no code blocks, no formatting) with the following structure:
 
 {
   "role": "specific job title based on experience and skills",
@@ -131,6 +131,9 @@ const ResumeAnalyzer = () => {
 }
 
 IMPORTANT:
+- Return ONLY the raw JSON object
+- Do not include any markdown formatting, code blocks, or backticks
+- Do not include any explanations or additional text
 - Do not return default or empty values
 - Be specific and detailed in your analysis
 - Ensure all arrays have at least 3 items
@@ -149,7 +152,7 @@ IMPORTANT:
           }),
         }
       );
-      debugger;
+
       const responseData = await response.json();
 
       if (!response.ok) {
@@ -182,11 +185,14 @@ IMPORTANT:
       let analysisResult;
       try {
         const content = responseData.choices[0].message.content.trim();
+        // Remove any markdown code block formatting if present
+        const cleanContent = content.replace(/```json\n?|\n?```/g, "").trim();
+
         // Check if the response starts with a JSON object
-        if (!content.startsWith("{")) {
+        if (!cleanContent.startsWith("{")) {
           throw new Error("Invalid response format from the model");
         }
-        analysisResult = JSON.parse(content);
+        analysisResult = JSON.parse(cleanContent);
 
         // Validate the analysis result
         if (

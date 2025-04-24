@@ -11,46 +11,46 @@ export type Database = {
     Tables: {
       resume_analyses: {
         Row: {
-          confidence: number
-          created_at: string
-          file_name: string
-          id: string
-          keywords: string[]
-          role: string
-        }
+          confidence: number;
+          created_at: string;
+          file_name: string;
+          id: string;
+          keywords: string[];
+          role: string;
+        };
         Insert: {
-          confidence: number
-          created_at?: string
-          file_name: string
-          id?: string
-          keywords: string[]
-          role: string
-        }
+          confidence: number;
+          created_at?: string;
+          file_name: string;
+          id?: string;
+          keywords: string[];
+          role: string;
+        };
         Update: {
-          confidence?: number
-          created_at?: string
-          file_name?: string
-          id?: string
-          keywords?: string[]
-          role?: string
-        }
-        Relationships: []
-      }
-    }
+          confidence?: number;
+          created_at?: string;
+          file_name?: string;
+          id?: string;
+          keywords?: string[];
+          role?: string;
+        };
+        Relationships: [];
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Enums: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
 type DefaultSchema = Database[Extract<keyof Database, "public">]
 
